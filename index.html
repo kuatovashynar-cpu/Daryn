@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="kk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Daryn Cup — Квиз</title>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@700;900&family=Montserrat:wght@500;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--navy:#0E1A5B;--navy2:#1B2D8F;--yellow:#FFD23F;--coral:#FF5A4E;--white:#fff}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:var(--navy);color:var(--white);font-family:'Montserrat',sans-serif;padding:24px 16px 40px}
+.wrap{max-width:900px;margin:0 auto}
+h1{font-family:'Unbounded',sans-serif;font-weight:900;font-size:clamp(32px,7vw,64px);margin:0;line-height:1}
+h1 span{color:var(--yellow)}
+.sub{margin:10px 0 24px;font-weight:700;font-size:clamp(14px,2.5vw,20px)}
+.board{display:grid;grid-template-columns:minmax(90px,1.4fr) repeat(3,1fr);gap:10px}
+.head{font-family:'Unbounded',sans-serif;font-weight:700;text-align:center;color:var(--yellow);font-size:clamp(14px,3vw,24px);padding:8px 0}
+.topic{display:flex;align-items:center;background:var(--navy2);border:3px solid var(--yellow);border-radius:14px;padding:8px 12px;font-family:'Unbounded',sans-serif;font-weight:700;font-size:clamp(13px,2.6vw,22px)}
+.cell{font-family:'Unbounded',sans-serif;font-weight:900;font-size:clamp(20px,5vw,40px);min-height:84px;border:0;border-radius:14px;cursor:pointer;color:var(--navy);background:var(--white);transition:transform .15s}
+.cell:hover,.cell:focus-visible{transform:scale(1.05);outline:3px solid var(--coral)}
+.cell.p10{background:var(--yellow)}
+.cell.p15{background:var(--coral)}
+.cell.used{background:var(--navy2);color:#8fa0ff;cursor:default;transform:none;outline:none;text-decoration:line-through}
+.reset{margin-top:24px;background:transparent;color:var(--white);border:2px solid var(--white);border-radius:999px;padding:10px 20px;font:700 14px 'Montserrat',sans-serif;cursor:pointer}
+.reset:hover{background:var(--white);color:var(--navy)}
+.overlay{position:fixed;inset:0;background:rgba(5,10,40,.85);display:none;align-items:center;justify-content:center;padding:16px;z-index:10}
+.overlay.open{display:flex}
+.modal{background:var(--white);color:var(--navy);border-radius:22px;max-width:680px;width:100%;padding:28px;display:flex;flex-direction:column;gap:18px;max-height:92vh;overflow:auto}
+.tag{align-self:flex-start;background:var(--yellow);font-weight:800;letter-spacing:2px;font-size:13px;padding:8px 14px;border-radius:999px}
+.q{font-family:'Unbounded',sans-serif;font-weight:700;font-size:clamp(18px,3.4vw,26px);line-height:1.3;margin:0}
+.ans{display:none;background:var(--navy);color:var(--yellow);border-radius:14px;padding:16px;font-weight:700;font-size:clamp(16px,2.6vw,20px);line-height:1.4}
+.ans.show{display:block}
+.btns{display:flex;gap:10px;flex-wrap:wrap}
+.btn{border:0;border-radius:999px;padding:12px 22px;font:800 15px 'Montserrat',sans-serif;cursor:pointer}
+.btn.show{background:var(--coral);color:var(--navy)}
+.btn.close{background:var(--navy);color:var(--white)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>DARYN <span>CUP</span></h1>
+  <div class="sub">Кім кімнен дарынды? Ұяшықты бас та, сұраққа жауап бер!</div>
+  <div class="board" id="board"></div>
+  <button class="reset" id="reset" type="button">Ойынды басынан бастау</button>
+</div>
+
+<div class="overlay" id="overlay" role="dialog" aria-modal="true" aria-labelledby="q">
+  <div class="modal">
+    <div class="tag" id="tag"></div>
+    <p class="q" id="q"></p>
+    <div class="ans" id="ans"></div>
+    <div class="btns">
+      <button class="btn show" id="showBtn" type="button">Жауабын көрсету</button>
+      <button class="btn close" id="closeBtn" type="button">Жабу</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// Сұрақтарды осы жерден өзгертуге болады: [сұрақ, жауап] — 5, 10, 15 балл ретімен
+const DATA = [
+  {topic:"Тарих", items:[
+    ["Орбұлақ шайқасы (1643) мен Аңырақай шайқасы (1729) арасында неше жыл өтті?","86 жыл"],
+    ["751 жылы Талас өзенінің бойында қай екі империя шайқасты?","Араб халифаты мен Тан империясы (Қытай)"],
+    ["Қазақстан астаналарын ертеден кешке қарай ретке қой: Алматы, Орынбор, Қызылорда. Астана одан кейін қай жылы болды?","Орынбор, Қызылорда, Алматы, сосын Астана — 1997 жылы"]
+  ]},
+  {topic:"Әлем", items:[
+    ["Жерде күн мен түн алты айдан ауысатын нүктелер қайда?","Полюстерде"],
+    ["Нил өзені оңтүстіктен солтүстікке ағады. Сонда «Жоғарғы Мысыр» оңтүстікте, «Төменгі Мысыр» солтүстікте жатыр. Неге?","Жоғары, төмен өзеннің ағысына қарай беріледі: жоғарғы жағы өзеннің бастауына, яғни оңтүстікке жақын"],
+    ["Толығымен басқа бір мемлекетпен қоршалған үш мемлекетті ата.","Лесото, Ватикан, Сан-Марино"]
+  ]},
+  {topic:"Әдебиет", items:[
+    ["Қорқыт, Асан қайғы, Бұқар жырау, Махамбет — қайсысы XIX ғасырда өмір сүрді?","Махамбет (1803–1846)"],
+    ["Қазақ жазуы XX ғасырда үш әліпби ауыстырды: латын, кирилл, араб. Дұрыс ретін көрсет.","Араб, латын (1929), кирилл (1940)"],
+    ["Ертеден кешке қарай ретке қой: «Бақытсыз Жамал», «Абай жолы», «Қырық мысал».","«Қырық мысал» (1909), «Бақытсыз Жамал» (1910), «Абай жолы» (1940-жылдары)"]
+  ]},
+  {topic:"Тұлға", items:[
+    ["Абай — лақап ат, ал оның шын аты кім?","Ыбырайым (Ибраһим)"],
+    ["Абай 1845 жылы тамызда туды, Шоқан Уәлиханов 1865 жылы сәуірде қайтыс болды. Шоқан өлген кезде Абай неше жаста еді?","19 жаста (туған күніне жетпеген)"],
+    ["Аристотель б.з.д. 322 жылы қайтыс болды, Әл-Фараби б.з. 870 жылы дүниеге келді. Олардың арасы шамамен неше жыл?","Шамамен 1190 жыл (322 + 870, нөлдік жыл болмағандықтан 1191)"]
+  ]},
+  {topic:"Логика", items:[
+    ["Ағашта 10 құс отыр. Аңшы біреуін атып түсірді. Қанша құс қалды?","Ешқайсысы — қалғаны ұшып кетеді"],
+    ["8 шардың біреуі сәл ауыр, қалғаны бірдей. Таразымен ең аз дегенде неше өлшеммен ауыр шарды табасың?","2 өлшеммен: 3+3+2 деп бөл, 3-ке 3 өлшеп, тең болса қалған 2-ні өлше"]
+    ,
+    ["Төрт адам түнде көпірден өтуі керек, бір ғана шам бар, көпір бір мезгілде екі адамға шыдайды. Олар 1, 2, 5 және 10 минутта өтеді (екеуі бірге өтсе, баяуының уақытымен). Бәрі ең аз қанша минутта өтеді?","17 минутта: 1+2 өтеді (2), 1 қайтады (1), 5+10 өтеді (10), 2 қайтады (2), 1+2 өтеді (2)"]
+  ]}
+];
+const POINTS=[5,10,15];
+const KEY="daryn-quiz-used";
+let used={};
+try{used=JSON.parse(localStorage.getItem(KEY)||"{}")}catch(e){}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(used))}catch(e){}}
+
+const board=document.getElementById("board");
+const overlay=document.getElementById("overlay");
+const tag=document.getElementById("tag"),q=document.getElementById("q"),ans=document.getElementById("ans");
+const showBtn=document.getElementById("showBtn");
+
+function build(){
+  board.innerHTML="";
+  board.appendChild(document.createElement("div"));
+  POINTS.forEach(p=>{const h=document.createElement("div");h.className="head";h.textContent=p+" балл";board.appendChild(h)});
+  DATA.forEach((row,r)=>{
+    const t=document.createElement("div");t.className="topic";t.textContent=row.topic;board.appendChild(t);
+    row.items.forEach((it,c)=>{
+      const id=r+"-"+c;
+      const b=document.createElement("button");
+      b.type="button";b.className="cell p"+POINTS[c]+(used[id]?" used":"");
+      b.textContent=POINTS[c];
+      b.setAttribute("aria-label",row.topic+", "+POINTS[c]+" балл");
+      b.addEventListener("click",()=>openQ(r,c,b));
+      board.appendChild(b);
+    });
+  });
+}
+function openQ(r,c,btn){
+  const it=DATA[r].items[c];
+  tag.textContent=DATA[r].topic.toUpperCase()+" · "+POINTS[c]+" БАЛЛ";
+  q.textContent=it[0];ans.textContent=it[1];
+  ans.classList.remove("show");showBtn.style.display="";
+  overlay.classList.add("open");
+  used[r+"-"+c]=true;save();btn.classList.add("used");
+}
+function closeQ(){overlay.classList.remove("open")}
+showBtn.addEventListener("click",()=>{ans.classList.add("show");showBtn.style.display="none"});
+document.getElementById("closeBtn").addEventListener("click",closeQ);
+overlay.addEventListener("click",e=>{if(e.target===overlay)closeQ()});
+document.addEventListener("keydown",e=>{if(e.key==="Escape")closeQ()});
+document.getElementById("reset").addEventListener("click",()=>{used={};save();build()});
+build();
+</script>
+</body>
+</html>
